@@ -56,18 +56,39 @@ def find_faces(frames):
     """ This function receives a list of frames and draws rectangles around all
     of the faces it finds. For now, it edits the original frames. """
     # Load the haar cascades
-    front_cascade = cv2.CascadeClassifier('/home/vsantos/opencv_install/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml')
-    #side_cascade = cv2.CascadeClassifier('/home/vsantos/opencv_install/share/OpenCV/haarcascades/haarcascade_profileface.xml')
+    front_cascade = cv2.CascadeClassifier('/home/vsantos/opencv_install/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml')
+    side_cascade = cv2.CascadeClassifier('/home/vsantos/opencv_install/share/OpenCV/haarcascades/haarcascade_profileface.xml')
+
+    # Define scale factor.
+    # We will reduce images by this factor to speed up processing.
+    scale_factor = 0.5
 
     # Detect faces in all the frames
+    i = 1
     for frame in frames:
+        # Print the current frame index
+        print("Processing frame {} of {}.".format(i, len(frames)))
+        i+=1
+        # Convert image to grayscale and reduce it
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = front_cascade.detectMultiScale(gray)#, 1.3, 5)
-        side_faces = side_cascade.detectMultiScale(gray)
+        small = cv2.resize(gray, (0,0), fx=scale_factor, fy=scale_factor)
+
+        # Detect faces
+        face_list = []
+        face_list.append(front_cascade.detectMultiScale(small))
+        face_list.append(side_cascade.detectMultiScale(small))
+        face_list.append(side_cascade.detectMultiScale(cv2.flip(small,0)))
+
+        # Transform faces to the original coordinate frame and append to the
+        # general face list
+        faces = []
+        for l in face_list:
+            l = [[int(x*(1/scale_factor)) for x in v] for v in l]
+            faces += l
+
+        # Paint rectangles in images
         for (x,y,w,h) in faces:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
-        #for (x,y,w,h) in side_faces:
-        #    cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
 
 def find_faces_rt(duration=30):
     """ This function reads frames from the camera and marks faces, doing so
@@ -92,9 +113,6 @@ def find_faces_rt(duration=30):
     while(time.time() - start < duration):
         # Capture frame
         ret, frame = cap.read()
-
-        # Append to our frame list
-        frames.append(frame)
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = front_cascade.detectMultiScale(gray)
