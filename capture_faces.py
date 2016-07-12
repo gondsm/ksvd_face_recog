@@ -52,6 +52,7 @@ def load_frames_from_video(filename):
     # Extract frames and append to frame list
     frames = []
     while True:
+    #for i in range(50):
         ret, frame = cap.read()
         if ret == False:
             break
@@ -82,6 +83,7 @@ def find_faces(frames):
 
     # Detect faces in all the frames
     i = 1
+    face_boxes = []
     for frame in frames:
         # Print the current frame index
         print("Processing frame {} of {}.".format(i, len(frames)))
@@ -109,11 +111,26 @@ def find_faces(frames):
         # TODO: Actually implement
         if type(faces) != type(tuple()):
             faces = faces[numpy.random.randint(len(faces))]
-
+        face_boxes.append(faces)
         # Paint rectangles in images
         #for (x,y,w,h) in faces:
-        (x,y,w,h) = faces
-        cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+        #(x,y,w,h) = faces
+        #cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+
+    return face_boxes
+
+
+def crop_faces(frames, boxes):
+    """ This function receives a list of frames and a list of bounding boxes
+    corresponding to faces, and uses that information to produce a list of
+    cropped faces.
+    """
+    cropped = []
+    for i, frame in enumerate(frames):
+        (x,y,w,h) = boxes[i]
+        cropped.append(frame[y: y + h, x: x + w])
+
+    return cropped
 
 
 def find_faces_rt(duration=30):
@@ -180,6 +197,9 @@ def find_faces_rt(duration=30):
 if __name__ == "__main__":
     #find_faces_rt()
     #frames = capture_video(5)
-    frames = load_frames_from_video("2016-07-12-131940.webm")
-    find_faces(frames)
-    show_frames(frames)
+    #frames = load_frames_from_video("2016-07-12-131940.webm")
+    frames = load_frames_from_video("20160712_134926.mp4")
+    boxes = find_faces(frames)
+    cropped = crop_faces(frames, boxes)
+    #show_frames(frames)
+    show_frames(cropped)
