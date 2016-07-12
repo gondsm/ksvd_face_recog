@@ -45,6 +45,22 @@ def capture_video(duration):
     # Return the captured frames
     return frames
 
+def load_frames_from_video(filename):
+    # Open capture device
+    cap = cv2.VideoCapture(filename)
+
+    # Extract frames and append to frame list
+    frames = []
+    while True:
+        ret, frame = cap.read()
+        if ret == False:
+            break
+        frames.append(frame)
+
+    # Return list
+    return frames
+
+
 def show_frames(frames, freq = 12):
     """ This function receives a list of frames and plays them back at the given
     frequency.
@@ -98,6 +114,7 @@ def find_faces(frames):
         #for (x,y,w,h) in faces:
         (x,y,w,h) = faces
         cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+
 
 def find_faces_rt(duration=30):
     """ This function reads frames from the camera and marks faces, doing so
@@ -162,6 +179,7 @@ def find_faces_rt(duration=30):
 
 if __name__ == "__main__":
     #find_faces_rt()
-    frames = capture_video(5)
+    #frames = capture_video(5)
+    frames = load_frames_from_video("2016-07-12-131940.webm")
     find_faces(frames)
     show_frames(frames)
