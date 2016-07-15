@@ -20,13 +20,13 @@ clear all
 train_1_names = ['sequences/filipa_1/1/33.jpg';
                  'sequences/filipa_1/1/34.jpg';
                  'sequences/filipa_1/1/35.jpg';
-                 'sequences/filipa_1/1/36.jpg']
+                 'sequences/filipa_1/1/36.jpg'];
 
 train_2_names = ['sequences/filipa_1/2/41.jpg';
                  'sequences/filipa_1/2/42.jpg';
                  'sequences/filipa_1/2/43.jpg';
                  'sequences/filipa_1/2/44.jpg';
-                 'sequences/filipa_1/2/45.jpg']
+                 'sequences/filipa_1/2/45.jpg'];
              
 n_train_1 = size(train_1_names);
 n_train_1 = n_train_1(1);
@@ -42,8 +42,17 @@ for i = 1:n_train_2
     train_2{i} = rgb2gray(imread(train_2_names(i,:)));
 end
 
-% We'll test on training images, to check how stuff works
-test_1 = train_1;
+% Load test clusters
+test_1_names = ['sequences/filipa_test/1/1.jpg';
+                'sequences/filipa_test/1/3.jpg';
+                'sequences/filipa_test/1/4.jpg';
+                'sequences/filipa_test/1/6.jpg'];
+n_test_1 = size(test_1_names);
+n_test_1 = n_test_1(1);
+test_1 = {};
+for i = 1:n_test_1
+    test_1{i} = rgb2gray(imread(test_1_names(i,:)));
+end
 
 %size(train_1{1})
 %imshow(train_1{4})
@@ -55,7 +64,6 @@ test_1 = train_1;
 % containing all of the images of that cluster, one per cell.
 train_clusters{1} = train_1;
 train_clusters{2} = train_2;
-%length(train_clusters)
 
 % Similarly, the cell array train_clusters will contain all of the test
 % clusters.
@@ -81,32 +89,17 @@ for i = 1:length(test_clusters)
 end
 %size(test_mats)
 
-% train_1_mat = []
-% for i = 1:length(train_1)
-%     train_1_mat = [train_1_mat, double(train_1{i}(:))];
-% end
-% size(train_1_mat)
-
-% train_2_mat = []
-% for i = 1:length(train_2)
-%     train_2_mat = [train_2_mat, double(train_2{i}(:))];
-% end
-% size(train_2_mat)
-
 % Decompose training matrices
 % Whoa, almost looks like a civilized dictionary:
+disp('Obtaining dictionaries from training sequences')
 params=struct('K', 4, ...
               'numIteration', 15, ... 
               'errorFlag', 0, ...
               'L', 10, ...
               'preserveDCAtom', 0, ...
               'InitializationMethod','DataElements', ...
-              'displayProgress', 1)
+              'displayProgress', 0);
 
-%[dict, out] = KSVD(train_1_mat, params);
-%[dict, out] = KSVD(train_2_mat, params);
-% size(dict)
-% size(out)
 dicts = {};
 decomps = {};
 for i = 1:length(train_mats)
@@ -115,10 +108,37 @@ for i = 1:length(train_mats)
 end
 
 % Decompose test matrices
+disp('Decomposing test sequences into previous dictionaries')
+decomp_results = {};
+for i = 1:length(dicts)
+    info = ['Decomposing test sequence with dictionary ', num2str(i)];
+    disp(info)
+    params_test=struct('K', 4, ...
+                   'numIteration', 15, ... 
+                   'errorFlag', 0, ...
+                   'L', 10, ...
+                   'preserveDCAtom', 0, ...
+                   'InitializationMethod','GivenMatrix', ...
+                   'initialDictionary', dicts(i),...
+                   'displayProgress', 0);
+               
+    [temp1, temp2] = KSVD(test_mats{1}, params_test);
+    decomp_results{i} = temp2.CoefMatrix;
+end               
 
 % Calculate residual
 % (it should hold that Data equals approximately
 % Dictionary*output.CoefMatrix) <--- key to calculating residual!!
+error = [];
+for i = 1:length(dicts)
+    error(i) = abs(sum(sum(dicts{i}*decomp_results{i} - test_mats{1})));
+end
+disp('Calculated the following residuals:')
+error
+disp('The sequence that better represents the test sequence is')
+[temp, idx] = min(error);
+idx
+
 
 % Announce classification
 disp('Done!')
