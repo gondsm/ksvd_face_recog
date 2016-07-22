@@ -17,57 +17,46 @@ clear all
 % Load image clusters
 % For now, filenames are hard-coded (and the above structure is not
 % actually used or needed
-train_1_names = ['sequences/filipa_1/1/33.jpg';
-                 'sequences/filipa_1/1/34.jpg';
-                 'sequences/filipa_1/1/35.jpg';
-                 'sequences/filipa_1/1/36.jpg'];
-
-train_2_names = ['sequences/filipa_1/2/41.jpg';
-                 'sequences/filipa_1/2/42.jpg';
-                 'sequences/filipa_1/2/43.jpg';
-                 'sequences/filipa_1/2/44.jpg';
-                 'sequences/filipa_1/2/45.jpg'];
+train_files{1} = ['sequences_cropped/filipa_1/1/33.jpg';
+                  'sequences_cropped/filipa_1/1/34.jpg';
+                  'sequences_cropped/filipa_1/1/35.jpg';
+                  'sequences_cropped/filipa_1/1/36.jpg';];
              
-n_train_1 = size(train_1_names);
-n_train_1 = n_train_1(1);
-train_1 = {};
-for i = 1:n_train_1
-    train_1{i} = rgb2gray(imread(train_1_names(i,:)));
-end
-
-n_train_2 = size(train_2_names);
-n_train_2 = n_train_2(1);
-train_2 = {};
-for i = 1:n_train_2
-    train_2{i} = rgb2gray(imread(train_2_names(i,:)));
+train_files{2} = ['sequences_cropped/filipa_1/2/41.jpg';
+                  'sequences_cropped/filipa_1/2/42.jpg';
+                  'sequences_cropped/filipa_1/2/43.jpg';
+                  'sequences_cropped/filipa_1/2/44.jpg';
+                  'sequences_cropped/filipa_1/2/45.jpg'];
+              
+for i = 1:length(train_files)
+    % Load all cluster images, cluster by cluster
+    n_imgs = size(train_files{i});
+    n_imgs = n_imgs(1);
+    for j = 1:n_imgs
+        train_clusters{i}{j} = rgb2gray(imread(train_files{i}(i,:)));
+    end
 end
 
 % Load test clusters
-test_1_names = ['sequences/filipa_test/1/1.jpg';
-                'sequences/filipa_test/1/3.jpg';
-                'sequences/filipa_test/1/4.jpg';
-                'sequences/filipa_test/1/6.jpg'];
-n_test_1 = size(test_1_names);
-n_test_1 = n_test_1(1);
-test_1 = {};
-for i = 1:n_test_1
-    test_1{i} = rgb2gray(imread(test_1_names(i,:)));
+test_files{1} = ['sequences_cropped/filipa_test/1/1.jpg';
+                 'sequences_cropped/filipa_test/1/3.jpg';
+                 'sequences_cropped/filipa_test/1/4.jpg';
+                 'sequences_cropped/filipa_test/1/6.jpg'];
+              
+for i = 1:length(test_files)
+    % Load all cluster images, cluster by cluster
+    n_imgs = size(test_files{i});
+    n_imgs = n_imgs(1);
+    for j = 1:n_imgs
+        test_clusters{i}{j} = rgb2gray(imread(test_files{i}(i,:)));
+    end
 end
-
-%size(train_1{1})
-%imshow(train_1{4})
-%size(train_1{1}(:)')
-%length(train_1)
 
 % From here on out, the cell array train_clusters will contain all of the
 % training clusters. Each element of train_clusters is a cell array
 % containing all of the images of that cluster, one per cell.
-train_clusters{1} = train_1;
-train_clusters{2} = train_2;
-
 % Similarly, the cell array train_clusters will contain all of the test
 % clusters.
-test_clusters{1} = test_1;
 
 % Organize clusters into matrices
 % Each column of the matrix will be a different image
