@@ -7,47 +7,22 @@
 % Code sections are numbered for user convenience.
 
 %% 1. Decompose Training Data
-% For now, this needs to stay; we're not cleaning up properly at the end
-clear all
-
-% This script assumes the following folder structure:
-%
-% <sequences_root>/seq_<something>/1
-%                 ^               /2
-%                 |               /
-%                 One per seq.    ^
-%                                 | One per cluster (names should be 1, 2,
-%                                                    etc.)
-
-% Load image clusters
-% For now, filenames are hard-coded (and the above structure is not
-% actually used or needed
-% train_files{1} = ['sequences_cropped/filipa_1/1/33.jpg';
-%                   'sequences_cropped/filipa_1/1/34.jpg';
-%                   'sequences_cropped/filipa_1/1/35.jpg';
-%                   'sequences_cropped/filipa_1/1/36.jpg';];
-%              
-% train_files{2} = ['sequences_cropped/filipa_1/2/41.jpg';
-%                   'sequences_cropped/filipa_1/2/42.jpg';
-%                   'sequences_cropped/filipa_1/2/43.jpg';
-%                   'sequences_cropped/filipa_1/2/44.jpg';
-%                   'sequences_cropped/filipa_1/2/45.jpg'];
-%               
-% for i = 1:length(train_files)
-%     % Load all cluster images, cluster by cluster
-%     n_imgs = size(train_files{i});
-%     n_imgs = n_imgs(1);
-%     for j = 1:n_imgs
-%         train_clusters{i}{j} = rgb2gray(imread(train_files{i}(i,:)));
-%     end
-% end
+% Clear any previous training
+clear dicts
 
 % Load train clusters
-base_dir = 'sequences_cropped/train/'
+% This script assumes the following folder structure:
+%
+% <base_dir>/<something>/1
+%             ^         /2
+%             |         /
+%        One per seq.   ^
+%                       | One per cluster (names should be 1, 2,
+%                                                    etc.)
+base_dir = 'sequences_cropped/train/' % base_dir must end in '/'
+% Extract the folder names of the sequences
 seqs = dir(base_dir);
 seqs = seqs(3:end);
-seqs(1).name;
-length(seqs);
 
 % For each subfolder of the main data folder (sequence)
 n = 1; % linear counter for clusters
@@ -113,24 +88,61 @@ clearvars -except dicts
 % Run ONE of the following sections to select which test cluster will be
 % decomposed
 
-%% Select Cluster 1
+%% Select Test Cluster 1
 % Load test clusters
 test_files{1} = ['sequences_cropped/test/filipa_test/1/1.jpg';
                  'sequences_cropped/test/filipa_test/1/3.jpg';
                  'sequences_cropped/test/filipa_test/1/4.jpg';
                  'sequences_cropped/test/filipa_test/1/6.jpg'];
+disp('Loaded cluster 1!')
 
-
-
-%% Select Cluster 2
+%% Select Test Cluster 2
 % Load test clusters
 test_files{1} = ['sequences_cropped/test/filipa_test/2/64.jpg';
                  'sequences_cropped/test/filipa_test/2/65.jpg';
                  'sequences_cropped/test/filipa_test/2/66.jpg';
                  'sequences_cropped/test/filipa_test/2/67.jpg';
                  'sequences_cropped/test/filipa_test/2/68.jpg'];
+disp('Loaded cluster 2!')
 
-
+%% Select Test Cluster 3
+% Load test clusters
+test_files{1} = ['sequences_cropped/test/filipa_test/3/171.jpg';
+                 'sequences_cropped/test/filipa_test/3/172.jpg';
+                 'sequences_cropped/test/filipa_test/3/173.jpg';
+                 'sequences_cropped/test/filipa_test/3/174.jpg';
+                 'sequences_cropped/test/filipa_test/3/175.jpg';
+                 'sequences_cropped/test/filipa_test/3/176.jpg';
+                 'sequences_cropped/test/filipa_test/3/177.jpg'];
+disp('Loaded cluster 3!')
+             
+%% Select Test Cluster 4
+% Load test clusters
+test_files{1} = ['sequences_cropped/test/goncalo_test/1/22.jpg';
+                 'sequences_cropped/test/goncalo_test/1/23.jpg';
+                 'sequences_cropped/test/goncalo_test/1/24.jpg';
+                 'sequences_cropped/test/goncalo_test/1/25.jpg';
+                 'sequences_cropped/test/goncalo_test/1/26.jpg'];
+disp('Loaded cluster 4!')
+             
+%% Select Test Cluster 5
+% Load test clusters
+test_files{1} = ['sequences_cropped/test/goncalo_test/2/03.jpg';
+                 'sequences_cropped/test/goncalo_test/2/13.jpg';
+                 'sequences_cropped/test/goncalo_test/2/14.jpg';
+                 'sequences_cropped/test/goncalo_test/2/15.jpg'];
+disp('Loaded cluster 5!')
+             
+%% Select Test Cluster 6
+% Load test clusters
+test_files{1} = ['sequences_cropped/test/goncalo_test/3/102.jpg';
+                 'sequences_cropped/test/goncalo_test/3/103.jpg';
+                 'sequences_cropped/test/goncalo_test/3/104.jpg';
+                 'sequences_cropped/test/goncalo_test/3/132.jpg';
+                 'sequences_cropped/test/goncalo_test/3/133.jpg';
+                 'sequences_cropped/test/goncalo_test/3/134.jpg'];
+disp('Loaded cluster 6!')
+             
 %% 3. Load Test Cluster
 % This section loads the test cluster from the pre-defined image names.
 % the cell array train_clusters will contain all of the test clusters.              
