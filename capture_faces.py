@@ -1,17 +1,29 @@
-""" This script opens the webcam and captures video for a set length of time.
-Then, it detects and crops faces on all of the captured frames, and saves the
-image files to a folder.
+""" capture_faces.py
+Author: Gonçalo S. Martins
+
+This script implements the basic face detection and extraction features
+needed for this work. The main section of the script illustrates its usage
+in extracting faces from pre-recorded videos.
+
+This script was tested using Python 3.5 and OpenCV 3.1.
 
 Video capture code inspired by:
 http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html
 
 Face extraction code inspired by:
 http://docs.opencv.org/master/d7/d8b/tutorial_py_face_detection.html#gsc.tab=0
+
+"Haar inversion method" inspired by work of the CASIR project:
+http://mrl.isr.uc.pt/projects/casir/
 """
-import cv2
+# Standard Library imports
 import time
-import numpy
 import os
+
+# Non-standard imports
+import cv2
+import numpy
+
 
 # Data loading functions
 def capture_video(duration):
