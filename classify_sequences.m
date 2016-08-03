@@ -203,11 +203,11 @@ for n = 1:length(test_mats)
     [temp, idx] = min(error);
     disp(idx)
     
-    classification_results = [classification_results; n, idx, temp];
+    classification_results = [classification_results; n, idx];
 end
 
 % Announce classification
-disp('Results: (cluster, match, error)')
+disp('Results: (cluster, match)')
 disp(classification_results)
 
 % Clear unnecessary variables
