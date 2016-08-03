@@ -84,30 +84,27 @@ disp('Training done!')
 % Clean up unneded variables
 clearvars -except dicts
 
-%% 2. Select Test cluster
-% Run ONE of the following sections to select which test cluster will be
-% decomposed
-
-%% Select Test Cluster 1
-% Load test clusters
+%% 2. Load Test Cluster Filenames
+% This section defines the filenames of the clusters to be used for
+% testing. This is the place to change if you want to test with different
+% clusters.
+% Cluster 1
 test_files{1} = ['sequences_cropped/test/filipa_test/1/1.jpg';
                  'sequences_cropped/test/filipa_test/1/3.jpg';
                  'sequences_cropped/test/filipa_test/1/4.jpg';
                  'sequences_cropped/test/filipa_test/1/6.jpg'];
 disp('Loaded cluster 1!')
 
-%% Select Test Cluster 2
-% Load test clusters
-test_files{1} = ['sequences_cropped/test/filipa_test/2/64.jpg';
+% Cluster 2
+test_files{2} = ['sequences_cropped/test/filipa_test/2/64.jpg';
                  'sequences_cropped/test/filipa_test/2/65.jpg';
                  'sequences_cropped/test/filipa_test/2/66.jpg';
                  'sequences_cropped/test/filipa_test/2/67.jpg';
                  'sequences_cropped/test/filipa_test/2/68.jpg'];
 disp('Loaded cluster 2!')
 
-%% Select Test Cluster 3
-% Load test clusters
-test_files{1} = ['sequences_cropped/test/filipa_test/3/171.jpg';
+% Cluster 3
+test_files{3} = ['sequences_cropped/test/filipa_test/3/171.jpg';
                  'sequences_cropped/test/filipa_test/3/172.jpg';
                  'sequences_cropped/test/filipa_test/3/173.jpg';
                  'sequences_cropped/test/filipa_test/3/174.jpg';
@@ -116,34 +113,32 @@ test_files{1} = ['sequences_cropped/test/filipa_test/3/171.jpg';
                  'sequences_cropped/test/filipa_test/3/177.jpg'];
 disp('Loaded cluster 3!')
              
-%% Select Test Cluster 4
-% Load test clusters
-test_files{1} = ['sequences_cropped/test/goncalo_test/1/22.jpg';
+% Cluster 4
+test_files{4} = ['sequences_cropped/test/goncalo_test/1/22.jpg';
                  'sequences_cropped/test/goncalo_test/1/23.jpg';
                  'sequences_cropped/test/goncalo_test/1/24.jpg';
                  'sequences_cropped/test/goncalo_test/1/25.jpg';
                  'sequences_cropped/test/goncalo_test/1/26.jpg'];
 disp('Loaded cluster 4!')
-             
-%% Select Test Cluster 5
-% Load test clusters
-test_files{1} = ['sequences_cropped/test/goncalo_test/2/03.jpg';
+
+% Cluster 5
+test_files{5} = ['sequences_cropped/test/goncalo_test/2/03.jpg';
                  'sequences_cropped/test/goncalo_test/2/13.jpg';
                  'sequences_cropped/test/goncalo_test/2/14.jpg';
                  'sequences_cropped/test/goncalo_test/2/15.jpg'];
 disp('Loaded cluster 5!')
-             
-%% Select Test Cluster 6
-% Load test clusters
-test_files{1} = ['sequences_cropped/test/goncalo_test/3/102.jpg';
+
+% Cluster 6
+test_files{6} = ['sequences_cropped/test/goncalo_test/3/102.jpg';
                  'sequences_cropped/test/goncalo_test/3/103.jpg';
                  'sequences_cropped/test/goncalo_test/3/104.jpg';
                  'sequences_cropped/test/goncalo_test/3/132.jpg';
                  'sequences_cropped/test/goncalo_test/3/133.jpg';
                  'sequences_cropped/test/goncalo_test/3/134.jpg'];
-disp('Loaded cluster 6!')
+disp('Loaded cluster 6!')            
+
              
-%% 3. Load Test Cluster
+%% 3. Load Test Clusters
 % This section loads the test cluster from the pre-defined image names.
 % the cell array train_clusters will contain all of the test clusters.              
 for i = 1:length(test_files)
@@ -151,7 +146,8 @@ for i = 1:length(test_files)
     n_imgs = size(test_files{i});
     n_imgs = n_imgs(1);
     for j = 1:n_imgs
-        test_clusters{i}{j} = rgb2gray(imread(test_files{i}(i,:)));
+        %fprintf('Loading file %s into cluster %d.\n', test_files{i}(j,:), i) 
+        test_clusters{i}{j} = rgb2gray(imread(test_files{i}(j,:)));
     end
 end
 
@@ -174,38 +170,48 @@ clearvars -except test_mats dicts
 % that produced the least error.
 % Decompose test matrices
 disp('Decomposing test sequences into previous dictionaries')
-decomp_results = {};
-for i = 1:length(dicts)
-    info = ['Decomposing test sequence with dictionary ', num2str(i)];
-    disp(info)
-    params_test=struct('K', 4, ...
-                   'numIteration', 15, ... 
-                   'errorFlag', 0, ...
-                   'L', 10, ...
-                   'preserveDCAtom', 0, ...
-                   'InitializationMethod','GivenMatrix', ...
-                   'initialDictionary', dicts(i),...
-                   'displayProgress', 0);
-               
-    [temp1, temp2] = KSVD(test_mats{1}, params_test);
-    decomp_results{i} = temp2.CoefMatrix;
-end               
+classification_results = [];
+for n = 1:length(test_mats)
+    fprintf('Decomposing test sequence with dictionary ')
+    decomp_results = {};
+    for i = 1:length(dicts)
+        fprintf('%d ', i)
+        params_test=struct('K', 4, ...
+                       'numIteration', 15, ... 
+                       'errorFlag', 0, ...
+                       'L', 10, ...
+                       'preserveDCAtom', 0, ...
+                       'InitializationMethod','GivenMatrix', ...
+                       'initialDictionary', dicts(i),...
+                       'displayProgress', 0);
 
-% Calculate residual
-% (it should hold that Data equals approximately
-% Dictionary*output.CoefMatrix) <--- key to calculating residual!!
-error = [];
-for i = 1:length(dicts)
-    error(i) = abs(sum(sum(dicts{i}*decomp_results{i} - test_mats{1})));
+        [temp1, temp2] = KSVD(test_mats{n}, params_test);
+        decomp_results{i} = temp2.CoefMatrix;
+    end               
+    fprintf('\n')
+    
+    % Calculate residual
+    % (it should hold that Data equals approximately
+    % Dictionary*output.CoefMatrix) <--- key to calculating residual!!
+    error = [];
+    for i = 1:length(dicts)
+        error(i) = abs(sum(sum(dicts{i}*decomp_results{i} - test_mats{n})));
+    end
+    %disp('Calculated the following residuals:')
+    %disp(error)
+    disp('The training sequence that better represents the test sequence is')
+    [temp, idx] = min(error);
+    disp(idx)
+    
+    classification_results = [classification_results; n, idx, temp];
 end
-disp('Calculated the following residuals:')
-disp(error)
-disp('The training sequence that better represents the test sequence is')
-[temp, idx] = min(error);
-disp(idx)
 
 % Announce classification
-disp('Done!')
+disp('Results: (cluster, match, error)')
+disp(classification_results)
 
 % Clear unnecessary variables
+clearvars -except dicts
+
+%% Clear everything except training
 clearvars -except dicts
