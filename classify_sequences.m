@@ -1,3 +1,4 @@
+%%
 % Classify Sequences
 % Author: Gonçalo S. Martins
 % This script takes a number of pre-clustered image sequences and builds
@@ -17,31 +18,59 @@ clear all
 % Load image clusters
 % For now, filenames are hard-coded (and the above structure is not
 % actually used or needed
-train_files{1} = ['sequences_cropped/filipa_1/1/33.jpg';
-                  'sequences_cropped/filipa_1/1/34.jpg';
-                  'sequences_cropped/filipa_1/1/35.jpg';
-                  'sequences_cropped/filipa_1/1/36.jpg';];
-             
-train_files{2} = ['sequences_cropped/filipa_1/2/41.jpg';
-                  'sequences_cropped/filipa_1/2/42.jpg';
-                  'sequences_cropped/filipa_1/2/43.jpg';
-                  'sequences_cropped/filipa_1/2/44.jpg';
-                  'sequences_cropped/filipa_1/2/45.jpg'];
-              
-for i = 1:length(train_files)
-    % Load all cluster images, cluster by cluster
-    n_imgs = size(train_files{i});
-    n_imgs = n_imgs(1);
-    for j = 1:n_imgs
-        train_clusters{i}{j} = rgb2gray(imread(train_files{i}(i,:)));
-    end
+% train_files{1} = ['sequences_cropped/filipa_1/1/33.jpg';
+%                   'sequences_cropped/filipa_1/1/34.jpg';
+%                   'sequences_cropped/filipa_1/1/35.jpg';
+%                   'sequences_cropped/filipa_1/1/36.jpg';];
+%              
+% train_files{2} = ['sequences_cropped/filipa_1/2/41.jpg';
+%                   'sequences_cropped/filipa_1/2/42.jpg';
+%                   'sequences_cropped/filipa_1/2/43.jpg';
+%                   'sequences_cropped/filipa_1/2/44.jpg';
+%                   'sequences_cropped/filipa_1/2/45.jpg'];
+%               
+% for i = 1:length(train_files)
+%     % Load all cluster images, cluster by cluster
+%     n_imgs = size(train_files{i});
+%     n_imgs = n_imgs(1);
+%     for j = 1:n_imgs
+%         train_clusters{i}{j} = rgb2gray(imread(train_files{i}(i,:)));
+%     end
+% end
+
+% Load train clusters
+base_dir = 'sequences_cropped/train/'
+seqs = dir(base_dir);
+seqs = seqs(3:end);
+seqs(1).name;
+length(seqs);
+
+% For each subfolder of the main data folder (sequence)
+n = 1 % linear counter for clusters
+for i = 1:length(seqs)
+    % Determine the number of clusters
+    n_clusters = dir(strcat(base_dir, seqs(i).name));
+    n_clusters = length(n_clusters)-2;
+    % For each cluster
+    for j = 1:n_clusters
+        % Determine the names of the images in the folder
+        folder = strcat(base_dir, seqs(i).name, '/' ,int2str(j));
+        files = dir(folder);
+        files = files(3:end);
+        % For each image in the cluster
+        for k = 1:length(files)
+            filename = strcat(folder, '/', files(k).name);
+            train_clusters{n}{k} = rgb2gray(imread(filename));
+        end
+        n = n + 1;
+    end 
 end
 
 % Load test clusters
-test_files{1} = ['sequences_cropped/filipa_test/1/1.jpg';
-                 'sequences_cropped/filipa_test/1/3.jpg';
-                 'sequences_cropped/filipa_test/1/4.jpg';
-                 'sequences_cropped/filipa_test/1/6.jpg'];
+test_files{1} = ['sequences_cropped/test/filipa_test/1/1.jpg';
+                 'sequences_cropped/test/filipa_test/1/3.jpg';
+                 'sequences_cropped/test/filipa_test/1/4.jpg';
+                 'sequences_cropped/test/filipa_test/1/6.jpg'];
               
 for i = 1:length(test_files)
     % Load all cluster images, cluster by cluster
@@ -92,6 +121,7 @@ params=struct('K', 4, ...
 dicts = {};
 decomps = {};
 for i = 1:length(train_mats)
+    info = sprintf('Obtaining dictionary %d of %d.', i, length(train_mats))
     [dicts{i}, temp] = KSVD(train_mats{i}, params);
     decomps{i} = temp.CoefMatrix;
 end
@@ -124,7 +154,7 @@ for i = 1:length(dicts)
 end
 disp('Calculated the following residuals:')
 error
-disp('The sequence that better represents the test sequence is')
+disp('The training sequence that better represents the test sequence is')
 [temp, idx] = min(error);
 idx
 
