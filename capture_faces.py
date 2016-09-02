@@ -324,3 +324,13 @@ if __name__ == "__main__":
     #extract_faces_from_video("videos_vvb/Gonçalo_HSN.mp4", "./Gonçalo_HSN")
     #extract_faces_from_video("videos_vvb/Gonçalo_test.mp4", "./Gonçalo_test")
     #extract_faces_from_video("videos_vvb/Filipa_test.mp4", "./Filipa_test")
+    #extract_faces_from_video("Awais_Train.mp4", "./Awais_Train")
+    #extract_faces_from_video("Awais_Test.mp4", "./Awais_Test")
+    #extract_faces_from_video("Miguel_Train.mp4", "./Miguel_Train")
+    #extract_faces_from_video("Miguel_Test.mp4", "./Miguel_Test")
+    #extract_faces_from_video("hugo_test.mp4", "./hugo_test")
+    #extract_faces_from_video("hugo_train.mp4", "./hugo_train")
+    #extract_faces_from_video("jose_test.mp4", "./jose_test")
+    #extract_faces_from_video("jose_train.mp4", "./jose_train")
+
+    show_cenas()
