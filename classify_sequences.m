@@ -6,7 +6,7 @@
 % USAGE:
 % Code sections are numbered for user convenience.
 
-%% 1. Decompose Training Data
+%% 1. Load Training Data
 % Clear any previous training
 clear dicts train_cluster_names test_cluster_names scale classification_results
 
@@ -67,7 +67,7 @@ for i = 1:length(train_clusters)
 end
 %size(train_mats)
 
-% Decompose training matrices
+%% 2. Decompose training matrices
 % Whoa, almost looks like a civilized dictionary:
 disp('Obtaining dictionaries from training sequences')
 params=struct('K', 4, ...
@@ -89,9 +89,9 @@ end
 disp('Training done!')
 
 % Clean up unneded variables
-clearvars -except dicts train_cluster_names scale
+clearvars -except dicts train_cluster_names scale test_mats test_cluster_names
 
-%% 2. Load Test Clusters
+%% 3. Load Test Clusters
 base_dir = 'sequences_cropped/test/' % base_dir must end in '/'
 % Extract the folder names of the sequences
 seqs = dir(base_dir);
@@ -133,7 +133,7 @@ end
 
 clearvars -except test_mats dicts train_cluster_names test_cluster_names scale
 
-%% 3. Classify Test Clusters
+%% 4. Classify Test Clusters
 % This section decomposes the test cluster into each of the dictionaries,
 % and prints the residuals for each dictionary, as well as the dictionary
 % that produced the least error.
@@ -189,5 +189,463 @@ end
 % Clear unnecessary variables
 clearvars -except dicts train_cluster_names test_cluster_names classification_results scale
 
-%% Clear everything except training
-clearvars -except dicts train_cluster_names test_cluster_names
+%% Alternative Step 1: Get Training Data from Clustering
+% Load sequence images from a folder
+base_dir = 'train_sequences_extended/'; % base_dir must end in '/'
+
+% Number of clusters to use
+K = 10;
+
+% Scale of the images to load
+scale = 0.1;
+
+% Read folder names
+seqs = dir(base_dir);
+seqs = seqs(3:end);
+
+% Linear counter for training matrices
+n = 1;
+train_mats = {};
+
+% For each sequence in the folder
+for f = 1:length(seqs)
+    % Extract the folder names of the sequences
+    folder = strcat(base_dir, seqs(f).name);
+    folder = strcat(folder, '/');
+    imgs = dir(folder);
+    imgs = imgs(3:end);
+
+    % For each subfolder of the main data folder (sequence)
+    % For each image
+    for i = 1:length(imgs)
+        % Build filename
+        filename = strcat(folder, imgs(i).name);
+        % Load image
+        temp_img = rgb2gray(imread(filename));
+        % Scale image so largest dimension is 300
+        temp_img = imresize(temp_img, 300/min(size(temp_img)));
+        % Crop to 300x300
+        temp_img = temp_img(1:300, 1:300);
+        %disp(size(temp_img))
+        % Scale and load into sequence
+        sequence{i}= imresize(temp_img, scale);
+    end
+    fprintf('Loaded %d images from directory %s.\n', i, folder)
+
+    % Determine the two "most different" images
+    i_star = 1; % Indices of the images will go here
+    j_star = 1;
+    T = [];
+    I = [];
+    while length(T) < K
+        if length(T) == 0 % This is the first iteration
+            max_dist = 0;
+            % Calculate the distances between all images
+            % the two with the largest distance will be the first seeds in T
+            for i = 1:length(sequence)
+                for j = 1:length(sequence)
+                    if j ~= i
+                        % Calculate distance
+                        dist = norm(double(sequence{i}(:) - sequence{j}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                            j_star = j;
+                        end
+                    end
+                end
+            end
+            T = [i_star, j_star]; % These images are the "centers" of the clusters
+            I = [i_star, j_star]; % I will keep the indices of the images already "used"
+        else
+            max_dist = 0;
+            i_star = 0;
+            % Calculate the distances between each image and the cluster seeds
+            % the most distant will become a new seed
+            for i = 1:length(sequence)
+                repeat = 0;
+                if length(I(I==i)) > 0 || length(T(T==i)) > 0
+                    repeat = 1;
+                end
+                if repeat == 0
+                    for j = 1:length(T)
+                        % Calculate distance
+                        dist = norm(double(sequence{T(j)}(:) - sequence{i}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                        end
+                    end
+                end
+            end
+            T = [T, i_star]; % These images are the "centers" of the clusters
+            I = [I, i_star]; % I will keep the indices of the images already "used"
+        end
+    end
+    fprintf('Found me some optima:')
+    disp(T)
+
+    % Partition the sequence into the clusters already seeded
+    for i = 1:K
+        clusters{i} = T(i);
+    end
+
+    % For every image remaining in the sequence
+    for i = 1:length(sequence)
+        % if i not in I, i.e. if image i is not in a cluster yet
+        % (if it is, we skip this iteration)
+        i_in_I = false;
+        for j = 1:length(I)
+            if i == I(j)
+                i_in_I = true;
+                break
+            end
+        end
+        if i_in_I == true
+            continue
+        end
+        %disp(i)
+
+        % Determine which cluster the image should go to
+        k_star = 0;
+        min_dist = flintmax('double');
+        % For every cluster center
+        for k = 1:length(T)
+            % Calculate distance to cluster center
+            dist = norm(double(sequence{T(k)}(:) - sequence{i}(:)));
+            % Update minimum, if required
+            if dist < min_dist
+                min_dist = dist;
+                k_star = k;
+            end
+        end
+
+        % Add the image to the cluster
+        clusters{k_star} = [clusters{k_star}, i];
+        I = [I, i];
+    end
+
+    % Add clusters to final data structure
+    for ii = 1:length(clusters)
+        % Only add clusters with enough images to decompose
+        if length(clusters{ii}) > 3
+            train_mats{n} = [];
+            train_cluster_names{n} = seqs(f).name;
+            for jj = 1:length(clusters{ii})
+                temp_img = sequence(clusters{ii}(jj));
+                temp_img = temp_img{1};
+                train_mats{n} = [train_mats{n}, double(temp_img(:))];
+            end
+            n = n+1;
+        end
+    end
+end
+clearvars -except clustered_seqs folder_names scale train_cluster_names train_mats
+
+%% Alternative Steps 1 and 3: Get Training and Test Data from Clustering
+% Random images will be read for both
+% Load sequence images from a folder
+clear all
+base_dir = 'train_sequences_maximum/'; % base_dir must end in '/'
+
+% Number of clusters to use
+K = 8;
+
+% Scale of the images to load
+scale = 0.1;
+
+% Read folder names
+seqs = dir(base_dir);
+seqs = seqs(3:end);
+
+% First, we'll do training data
+% Linear counter for training matrices
+n = 1;
+train_mats = {};
+
+% For each sequence in the folder
+for f = 1:length(seqs)
+    % Extract the folder names of the sequences
+    folder = strcat(base_dir, seqs(f).name);
+    folder = strcat(folder, '/');
+    imgs = dir(folder);
+    imgs = imgs(3:end);
+
+    % For each subfolder of the main data folder (sequence)
+    % For each image
+    for i = 1:100
+        idx = randi(length(imgs));
+        % Build filename
+        filename = strcat(folder, imgs(idx).name);
+        % Load image
+        temp_img = rgb2gray(imread(filename));
+        % Scale image so largest dimension is 300
+        temp_img = imresize(temp_img, 300/min(size(temp_img)));
+        % Crop to 300x300
+        temp_img = temp_img(1:300, 1:300);
+        %disp(size(temp_img))
+        % Scale and load into sequence
+        sequence{i}= imresize(temp_img, scale);
+    end
+    fprintf('Loaded %d images from directory %s.\n', i, folder)
+
+    % Determine the two "most different" images
+    i_star = 1; % Indices of the images will go here
+    j_star = 1;
+    T = [];
+    I = [];
+    while length(T) < K
+        if length(T) == 0 % This is the first iteration
+            max_dist = 0;
+            % Calculate the distances between all images
+            % the two with the largest distance will be the first seeds in T
+            for i = 1:length(sequence)
+                for j = 1:length(sequence)
+                    if j ~= i
+                        % Calculate distance
+                        dist = norm(double(sequence{i}(:) - sequence{j}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                            j_star = j;
+                        end
+                    end
+                end
+            end
+            T = [i_star, j_star]; % These images are the "centers" of the clusters
+            I = [i_star, j_star]; % I will keep the indices of the images already "used"
+        else
+            max_dist = 0;
+            i_star = 0;
+            % Calculate the distances between each image and the cluster seeds
+            % the most distant will become a new seed
+            for i = 1:length(sequence)
+                repeat = 0;
+                if length(I(I==i)) > 0 || length(T(T==i)) > 0
+                    repeat = 1;
+                end
+                if repeat == 0
+                    for j = 1:length(T)
+                        % Calculate distance
+                        dist = norm(double(sequence{T(j)}(:) - sequence{i}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                        end
+                    end
+                end
+            end
+            T = [T, i_star]; % These images are the "centers" of the clusters
+            I = [I, i_star]; % I will keep the indices of the images already "used"
+        end
+    end
+    fprintf('Found me some optima:')
+    disp(T)
+
+    % Partition the sequence into the clusters already seeded
+    clear clusters
+    for i = 1:K
+        clusters{i} = T(i);
+    end
+
+    % For every image remaining in the sequence
+    for i = 1:length(sequence)
+        % if i not in I, i.e. if image i is not in a cluster yet
+        % (if it is, we skip this iteration)
+        i_in_I = false;
+        for j = 1:length(I)
+            if i == I(j)
+                i_in_I = true;
+                break
+            end
+        end
+        if i_in_I == true
+            continue
+        end
+        %disp(i)
+
+        % Determine which cluster the image should go to
+        k_star = 0;
+        min_dist = flintmax('double');
+        % For every cluster center
+        for k = 1:length(T)
+            % Calculate distance to cluster center
+            dist = norm(double(sequence{T(k)}(:) - sequence{i}(:)));
+            % Update minimum, if required
+            if dist < min_dist
+                min_dist = dist;
+                k_star = k;
+            end
+        end
+
+        % Add the image to the cluster
+        clusters{k_star} = [clusters{k_star}, i];
+        I = [I, i];
+    end
+
+    % Add clusters to final data structure
+    for ii = 1:length(clusters)
+        % Only add clusters with enough images to decompose
+        if length(clusters{ii}) > 3
+            train_mats{n} = [];
+            train_cluster_names{n} = seqs(f).name;
+            for jj = 1:length(clusters{ii})
+                temp_img = sequence(clusters{ii}(jj));
+                temp_img = temp_img{1};
+                train_mats{n} = [train_mats{n}, double(temp_img(:))];
+            end
+            n = n+1;
+        end
+    end
+end
+
+% Second, we'll do test data
+% Linear counter for training matrices
+clearvars -except train_mats train_cluster_names scale K seqs base_dir
+K = K/2;
+n = 1;
+test_mats = {};
+
+% For each sequence in the folder
+for f = 1:length(seqs)
+    % Extract the folder names of the sequences
+    folder = strcat(base_dir, seqs(f).name);
+    folder = strcat(folder, '/');
+    imgs = dir(folder);
+    imgs = imgs(3:end);
+
+    % For each subfolder of the main data folder (sequence)
+    % For each image
+    for i = 1:50
+        idx = randi(length(imgs));
+        % Build filename
+        filename = strcat(folder, imgs(idx).name);
+        % Load image
+        temp_img = rgb2gray(imread(filename));
+        % Scale image so largest dimension is 300
+        temp_img = imresize(temp_img, 300/min(size(temp_img)));
+        % Crop to 300x300
+        temp_img = temp_img(1:300, 1:300);
+        %disp(size(temp_img))
+        % Scale and load into sequence
+        sequence{i}= imresize(temp_img, scale);
+    end
+    fprintf('Loaded %d images from directory %s.\n', i, folder)
+
+    % Determine the two "most different" images
+    i_star = 1; % Indices of the images will go here
+    j_star = 1;
+    T = [];
+    I = [];
+    while length(T) < K
+        if length(T) == 0 % This is the first iteration
+            max_dist = 0;
+            % Calculate the distances between all images
+            % the two with the largest distance will be the first seeds in T
+            for i = 1:length(sequence)
+                for j = 1:length(sequence)
+                    if j ~= i
+                        % Calculate distance
+                        dist = norm(double(sequence{i}(:) - sequence{j}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                            j_star = j;
+                        end
+                    end
+                end
+            end
+            T = [i_star, j_star]; % These images are the "centers" of the clusters
+            I = [i_star, j_star]; % I will keep the indices of the images already "used"
+        else
+            max_dist = 0;
+            i_star = 0;
+            % Calculate the distances between each image and the cluster seeds
+            % the most distant will become a new seed
+            for i = 1:length(sequence)
+                repeat = 0;
+                if length(I(I==i)) > 0 || length(T(T==i)) > 0
+                    repeat = 1;
+                end
+                if repeat == 0
+                    for j = 1:length(T)
+                        % Calculate distance
+                        dist = norm(double(sequence{T(j)}(:) - sequence{i}(:)));
+                        % Update maximum, if necessary
+                        if dist > max_dist
+                            max_dist = dist;
+                            i_star = i;
+                        end
+                    end
+                end
+            end
+            T = [T, i_star]; % These images are the "centers" of the clusters
+            I = [I, i_star]; % I will keep the indices of the images already "used"
+        end
+    end
+    fprintf('Found me some optima:')
+    disp(T)
+
+    % Partition the sequence into the clusters already seeded
+    clear clusters
+    for i = 1:K
+        clusters{i} = T(i);
+    end
+
+    % For every image remaining in the sequence
+    for i = 1:length(sequence)
+        % if i not in I, i.e. if image i is not in a cluster yet
+        % (if it is, we skip this iteration)
+        i_in_I = false;
+        for j = 1:length(I)
+            if i == I(j)
+                i_in_I = true;
+                break
+            end
+        end
+        if i_in_I == true
+            continue
+        end
+        %disp(i)
+
+        % Determine which cluster the image should go to
+        k_star = 0;
+        min_dist = flintmax('double');
+        % For every cluster center
+        for k = 1:length(T)
+            % Calculate distance to cluster center
+            dist = norm(double(sequence{T(k)}(:) - sequence{i}(:)));
+            % Update minimum, if required
+            if dist < min_dist
+                min_dist = dist;
+                k_star = k;
+            end
+        end
+
+        % Add the image to the cluster
+        clusters{k_star} = [clusters{k_star}, i];
+        I = [I, i];
+    end
+
+    % Add clusters to final data structure
+    for ii = 1:length(clusters)
+        % Only add clusters with enough images to decompose
+        if length(clusters{ii}) > 3
+            test_mats{n} = [];
+            test_cluster_names{n} = seqs(f).name;
+            for jj = 1:length(clusters{ii})
+                temp_img = sequence(clusters{ii}(jj));
+                temp_img = temp_img{1};
+                test_mats{n} = [test_mats{n}, double(temp_img(:))];
+            end
+            n = n+1;
+        end
+    end
+end
+
+clearvars -except clustered_seqs folder_names scale train_cluster_names train_mats test_mats test_cluster_names
